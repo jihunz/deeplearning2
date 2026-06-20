@@ -119,17 +119,19 @@ body(s,MX,1.55,W,5.2,[
 ],15,14); page(s,3)
 
 # ── 4 MODELS
-s=slide(); head(s,1,[("공유 골격, ",'111827'),("encoder만 교체",'1D4ED8')])
+s=slide(); head(s,1,[("공유 골격, ",'111827'),("encoder의 메커니즘만 다르다",'1D4ED8')])
 body(s,MX,1.55,W,5.2,[
   {'h':'공유 골격','items':[
     [("Embedding(128) → Encoder → masked mean pooling → Linear(4)",True,'111827')],
     [("encoder 한 조각만 교체, 나머지는 모두 동일",)]]},
-  {'h':'encoder 비교','items':[
-    [("LSTM",True,'111827'),("  bidirectional · 2 layers · hidden 128 / output 256 / params 3,220,484",)],
-    [("Transformer",True,'111827'),("  2 layers · 4 heads · FFN 256 · sinusoidal PE / dim 128 / params 2,825,476",)]]},
-  {'h':'파라미터 규모','items':[
-    [("임베딩이 지배적이라 두 모델 파라미터는 ",),("약 14% 차",True,'111827'),("로 비슷",)]]},
-],15,15); page(s,4)
+  {'h':'핵심 메커니즘 (결과 해석의 근거)','items':[
+    [("LSTM",True,'6B7280'),("  토큰을 순차 처리하며 hidden state에 문맥을 누적 (recurrence)",)],
+    [("Transformer",True,'1D4ED8'),("  모든 토큰을 self-attention으로 직접 연결, 근거를 여러 토큰에 분산",)]]},
+  {'h':'설정 · 규모','items':[
+    [("LSTM",True,'6B7280'),("  bidirectional 2 layers · hidden 128 · params 3,220,484",)],
+    [("Transformer",True,'1D4ED8'),("  2 layers · 4 heads · FFN 256 · sinusoidal PE · params 2,825,476",)],
+    [("임베딩이 지배적이라 두 모델 파라미터는 ",),("약 14% 차",True,'111827'),("로 유사",)]]},
+],14,13); page(s,4)
 
 # ── 5 EXPERIMENTS
 s=slide(); head(s,1,[("유일한 변수 = ",'111827'),("encoder 구조",'1D4ED8'),(" (나머지 전부 고정)",'111827')])
@@ -164,27 +166,30 @@ body(s,MX,5.75,W,1.5,[
 ],14,0); page(s,7)
 
 # ── 8 ABLATION (좌 그림 + 우 body)
-s=slide(); head(s,2,[("LSTM은 ",'111827'),("25%에서 포화",'6B7280'),(", Transformer는 ",'111827'),("계속 향상",'1D4ED8')])
+s=slide(); head(s,2,[("LSTM은 ",'111827'),("25%에서 saturation",'6B7280'),(", Transformer는 ",'111827'),("계속 향상",'1D4ED8')])
 pic(s,FIG+"/fig_ablation.png",MX,1.7,7.1,4.8)
 body(s,7.9,1.75,W-7.4,4.8,[
   {'h':'Transformer','items':[
-    [("데이터에 따라 단조 향상",True,'1D4ED8')],
-    [("scaling: 더 줄수록 더 좋아짐",)]]},
+    [("데이터에 따라 단조 증가 (scaling)",True,'1D4ED8')],
+    [("더 줄수록 더 좋아짐",)]]},
   {'h':'LSTM','items':[
-    [("25%에서 정점 후 정체",True,'111827')],
-    [("overfitting으로 추가 데이터를 못 씀",)]]},
+    [("25%에서 최고치 후 saturation",True,'6B7280')],
+    [("overfitting으로 추가 데이터를 활용 못 함",)]]},
   {'h':'가설 기각','items':[
-    [("'data-hungry' 가설 기각",)],
+    [("data-hungry 가설 기각",)],
     [("전 구간에서 Transformer 우위",)]]},
 ],14,16); page(s,8)
 
 # ── 9 EXTENSION mechanism
 s=slide(); head(s,2,[("bag-of-words 과제, 격차는 ",'111827'),("순서가 아닌 robustness",'1D4ED8')])
-pic(s,FIG+"/fig_mechanism.png",MX,1.45,W,3.6)
-body(s,MX,5.25,W,1.6,[
+tf=tbox(s,MX,1.4,W,0.8); p=tf.paragraphs[0]; space(p,line=1.18)
+run(p,"예시 (true label: ",False,'6B7280',12.5); run(p,"Sports",True,'1D4ED8',12.5); run(p,")   ",False,'6B7280',12.5)
+run(p,'"Giddy Phelps Touches Gold for First Time Michael Phelps won the gold medal in the 400 individual medley and set a world record in a time of 4 minutes 8.26 seconds."',False,'374151',12.5)
+pic(s,FIG+"/fig_mechanism.png",MX,2.28,W,2.95)
+body(s,MX,5.42,W,1.55,[
   {'items':[
-    [("PE on/off",True,'111827'),("  with-PE 0.910 vs no-PE 0.911 (차이 -0.001) → 순서 정보가 거의 불필요",)],
-    [("robustness",True,'111827'),("  LSTM은 비주제어 'giddy'에 쏠려 오답, Transformer는 주제 토큰에 분산해 정답",)]]},
+    [("PE on/off",True,'111827'),("  with-PE 0.910 vs no-PE 0.911 (차이 -0.001), 순서 정보가 거의 불필요",)],
+    [("robustness",True,'111827'),("  LSTM은 비주제어 'giddy'에 의존해 오분류, Transformer는 주제 토큰에 근거를 분산해 정확히 분류",)]]},
 ],14,0); page(s,9)
 
 # ── 10 CONCLUSION
@@ -192,13 +197,15 @@ s=slide(); head(s,3,[("동일 조건에서 ",'111827'),("Transformer 우수",'1D
 body(s,MX,1.55,W,5.2,[
   {'h':'성능','items':[
     [("동일 조건에서 test accuracy ",),("0.910 vs 0.833",True,'111827'),(" (encoder 구조만 바꾼 통제된 비교)",)]]},
-  {'h':'원인','items':[
-    [("generalization 차이",True,'111827'),(": LSTM은 overfitting하여 25%에서 포화, Transformer는 안정적으로 확장",)]]},
+  {'h':'원인 (메커니즘 차이)','items':[
+    [("Transformer",True,'1D4ED8'),(": self-attention이 근거를 여러 토큰에 분산 → robust, 안정적 scaling",)],
+    [("LSTM",True,'6B7280'),(": recurrence가 특정 토큰에 의존 → overfitting, 25%에서 saturation",)],
+    [("두 메커니즘의 generalization 차이가 성능 격차로 이어진다",)]]},
   {'h':'과제 성격','items':[
-    [("bag-of-words",True,'111827'),(": positional encoding 제거해도 정확도 동일 → 격차는 순서가 아닌 robustness",)]]},
+    [("bag-of-words",True,'111827'),(": positional encoding 제거해도 정확도 동일, 격차는 순서가 아닌 robustness",)]]},
   {'h':'한계 · 향후','items':[
     [("단일 seed → 다중 seed 재확인, LSTM regularization 강화",)],
     [("순서가 중요한 과제에서 positional encoding 재검증",)]]},
-],15,14); page(s,10)
+],14,12); page(s,10)
 
 prs.save(OUT); print("saved", OUT)

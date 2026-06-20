@@ -1,0 +1,84 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{times}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage[colorlinks,allcolors=blue]{hyperref}
+\setlist{leftmargin=1.4em,topsep=2pt,itemsep=2pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+
+\title{\vspace{-1.5em}Initial Project Plan\\[2pt]
+\large LSTM vs.\ Transformer Encoder for Text Classification (AG News)}
+\author{Jihun Jang (ETRI School, 02521122) \quad Deep Learning 2, 2026}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-1.5em}
+
+\section*{1.\ Team}
+\begin{itemize}
+\item Team: Jihun Jang (ETRI School, 02521122).
+\item Team leader: Jihun Jang (solo team).
+\end{itemize}
+
+\section*{2.\ Dataset Split}
+\begin{itemize}
+\item HuggingFace \texttt{ag\_news}, single source, 4 classes (labels 0--3, no conversion needed).
+\item \texttt{train\_test\_split(test\_size=0.1, seed=42)} $\rightarrow$ train 108k / val 12k / test 7.6k. Classes balanced.
+\item The test set is used for final evaluation only (no model selection, tuning, or early stopping).
+\end{itemize}
+
+\section*{3.\ Preprocessing}
+\begin{itemize}
+\item Tokenization: word level (lowercased, punctuation split).
+\item Vocabulary: built from train only, max 20k, minimum frequency 2, with PAD and UNK tokens.
+\item Maximum length 128 (truncate if longer, pad if shorter); padding is masked.
+\item The same input is used for both models.
+\end{itemize}
+
+\section*{4.\ Model Configuration}
+\begin{center}
+\begin{tabular}{>{\raggedright\arraybackslash}p{2.4cm} >{\raggedright\arraybackslash}p{4.5cm} >{\raggedright\arraybackslash}p{6.5cm}}
+\toprule
+ & \textbf{LSTM} & \textbf{Transformer Encoder} \\
+\midrule
+Embedding & 128 & 128 (= $d_{\text{model}}$) \\
+Core & BiLSTM, 2 layers, hidden 128 & 2 layers, 4 attention heads, FFN 256, sinusoidal positional encoding \\
+Pooling & masked mean & masked mean \\
+Output / Loss & Linear $\rightarrow$ 4, Cross-Entropy & Linear $\rightarrow$ 4, Cross-Entropy \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{itemize}
+\item Common: Adam, learning rate 1e-3, batch 64, up to 8 epochs, dropout 0.1 (common start, tuned by validation), seed 42, model selection by validation only.
+\item Parameter counts: LSTM $\approx$ 3.22M / Transformer $\approx$ 2.83M (comparable scale). No pretrained models.
+\end{itemize}
+
+\section*{5.\ Ablation Plan}
+\begin{itemize}
+\item Topic: data efficiency --- train 5 / 25 / 50 / 100\% ($\approx$ 5k / 27k / 54k / 108k).
+\item Hypothesis: with little data the Transformer is disadvantaged (weaker inductive bias) while the LSTM is stable on small data; the gap shrinks as data grows.
+\item Controls: the vocabulary is built once on the full training set and fixed/reused; subsets keep class proportions (stratified) with a fixed seed; val/test always use the full set.
+\item Figure: $x$ = data size, $y$ = accuracy / macro-F1, both models on one graph; the 100\% point is reused as the main comparison.
+\item Optional: Transformer internal analysis --- positional encoding on/off, attention-weight visualization, gradient saliency (input attribution).
+\end{itemize}
+
+\section*{6.\ Expected Analysis}
+\begin{itemize}
+\item Performance: both around 90\%+, with the Transformer slightly ahead or comparable.
+\item Data efficiency: at 5\% LSTM $\geq$ Transformer, at 100\% comparable (hypothesis test).
+\item Convergence: the Transformer is fast but learning-rate sensitive; the LSTM is stable (checked via loss curves).
+\item Confusion: Business $\leftrightarrow$ Sci/Tech expected to be largest. Analyze $\geq$ 5 misclassifications (shared / LSTM-only / Transformer-only): ambiguous wording, short sentences, truncation.
+\item Mechanism: accuracy maintained with positional encoding off would indicate AG News is vocabulary-centric (bag-of-words); attention and saliency should concentrate on class keywords.
+\end{itemize}
+
+\vspace{0.5em}\hrule\vspace{0.5em}
+\textbf{Environment:} Mac MPS / Colab T4, seed 42, checkpoints to Drive. \quad
+\textbf{Deliverables:} Jupyter notebook + report (4--6 pp.) + AI Usage Appendix ($\leq$ 1 p.).
+
+\end{document}
