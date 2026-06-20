@@ -37,13 +37,12 @@ def space(p,before=None,after=None,line=None):
         e=etree.SubElement(pPr,qn('a:spcBef')); x=etree.SubElement(e,qn('a:spcPts')); x.set('val',str(int(before*100)))
     if after is not None:
         e=etree.SubElement(pPr,qn('a:spcAft')); x=etree.SubElement(e,qn('a:spcPts')); x.set('val',str(int(after*100)))
-def bullet(p,lvl=0,char='●',clr='1D4ED8'):
+def bullet(p,lvl=0):
+    # PowerPoint 기본 불릿: 작은 점(•), 색·크기는 텍스트 상속(buClr/buSzPct 미설정)
     pPr=p._p.get_or_add_pPr()
-    pPr.set('marL',str(int(0.34*(lvl+1)*EMU))); pPr.set('indent',str(-int(0.26*EMU)))
-    e=etree.SubElement(pPr,qn('a:buClr')); sc=etree.SubElement(e,qn('a:srgbClr')); sc.set('val',clr)
-    e=etree.SubElement(pPr,qn('a:buSzPct')); e.set('val','76000')
+    pPr.set('marL',str(int(0.3*(lvl+1)*EMU))); pPr.set('indent',str(-int(0.3*EMU)))
     e=etree.SubElement(pPr,qn('a:buFont')); e.set('typeface','Arial')
-    e=etree.SubElement(pPr,qn('a:buChar')); e.set('char',char)
+    e=etree.SubElement(pPr,qn('a:buChar')); e.set('char',('•' if lvl==0 else '–'))
 def hline(s,x,y,w,clr='E5E7EB',wpt=1.0):
     ln=s.shapes.add_connector(MSO_CONNECTOR.STRAIGHT,Inches(x),Inches(y),Inches(x+w),Inches(y))
     ln.line.color.rgb=rgb(clr); ln.line.width=Pt(wpt); return ln
@@ -74,7 +73,7 @@ def body(s,x,y,w,h,blocks,fs=14,gap=14):
         for it in blk['items']:
             lv=it.get('lv',0) if isinstance(it,dict) else 0
             parts=it['parts'] if isinstance(it,dict) else it
-            p=para(); space(p,after=5,line=1.25); bullet(p,lvl=lv,char=('–' if lv else '●'),clr=('6B7280' if lv else '1D4ED8'))
+            p=para(); space(p,after=5,line=1.25); bullet(p,lvl=lv)
             for pt in parts: run(p,pt[0],pt[1] if len(pt)>1 else False,pt[2] if len(pt)>2 else '374151',fs)
 
 # ── 1 표지 (메타 프레임)
