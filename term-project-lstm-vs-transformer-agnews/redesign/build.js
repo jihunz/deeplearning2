@@ -1,7 +1,8 @@
 /**
- * LSTM vs Transformer 발표자료 v2 — tiny-budget-ada 디자인 문법 (불릿/들여쓰기 본문)
- * 본문 문법: 한 텍스트 박스 안에 [헤더 + 불릿 항목(들여쓰기)] — PowerPoint에서 직접 편집 쉬움.
- *   헤더(blue bold) / L0 불릿(● body) / L1 서브(– sub, 들여쓰기). 강조는 인라인 rich.
+ * LSTM vs Transformer 발표자료 v2 — tiny-budget-ada 디자인 문법 (PowerPoint 기본 불릿 본문)
+ * 본문 문법: body() — 한 텍스트 박스에 [헤더(blue) + 불릿 항목(ppt 기본 bullet + indentLevel)].
+ *   PowerPoint에서 Tab 들여쓰기·자동 불릿 그대로 동작. 강조는 항목 단위(핵심 항목 전체를 진하게).
+ *   (pptxgenjs는 한 paragraph에서 부분강조+불릿을 동시 지원하지 못해 항목은 단일 run으로 둔다.)
  * 실행: NODE_PATH=$(npm root -g) node redesign/build.js
  */
 const pptxgen=require("pptxgenjs");
@@ -24,26 +25,18 @@ function head(s,active,runs){
   s.addText(runs,{x:MX,y:0.74,w:W,h:0.5,fontFace:F,fontSize:21,bold:true,color:C.ink,margin:0,lineSpacingMultiple:1.0});
 }
 function pg(s,n){ s.addText(n+" / "+TOT,{x:11.9,y:7.12,w:1.1,h:0.26,fontFace:F,fontSize:9.5,color:"AAB2BD",align:"right",margin:0}); }
-function E(t,o){ return Object.assign({t:t},o||{}); }  // 인라인 강조 run: E("텍스트",{b:true,c:C.blue})
-
-// 본문: blocks=[{h:"헤더", items:[ "문자열" | [E(..),E(..)] , ... ]}]. items 원소에 {lv:1} 객체로 들여쓰기 지정 가능.
-// 한 텍스트 박스 = 직접 편집 쉬움. fs 본문 크기, gap 헤더 그룹 간격.
+// 본문: blocks=[{h:"헤더", items:[ "평문" | {t,b,c,lv} ]}]. 항목=단일 run + ppt 기본 불릿(indentLevel).
 function body(s,x,y,w,h,blocks,fs,gap){
   fs=fs||14; gap=gap||14;
   const runs=[];
   blocks.forEach((b,bi)=>{
     if(b.h) runs.push({text:b.h,options:{bold:true,color:C.blue,fontSize:fs+1.5,breakLine:true,paraSpaceBefore:bi>0?gap:0,paraSpaceAfter:7}});
     b.items.forEach(it=>{
-      let lv=0, parts;
-      if(typeof it==="string") parts=[E(it)];
-      else if(Array.isArray(it)) parts=it;
-      else { lv=it.lv||0; parts=it.parts; }
-      const il=lv+1;   // 항목은 헤더보다 한 단계 들여쓰기
-      runs.push({text:(lv?"–   ":"●   "),options:{color:lv?C.sub:C.blue,fontSize:lv?fs:fs-2.5,breakLine:false,indentLevel:il}});
-      parts.forEach((r,ri)=>runs.push({text:r.t,options:{
-        color:r.c||C.body, bold:r.b||false, fontSize:fs,
-        breakLine:ri===parts.length-1, paraSpaceAfter:ri===parts.length-1?5:0,
-        lineSpacingMultiple:1.2, indentLevel:il}}));
+      let t,lv=0,extra={};
+      if(typeof it==="string"){ t=it; }
+      else { t=it.t; lv=it.lv||0; if(it.b)extra.bold=true; if(it.c)extra.color=it.c; }
+      runs.push({text:t,options:Object.assign({color:C.body,fontSize:fs,breakLine:true,paraSpaceAfter:5,
+        lineSpacingMultiple:1.25,bullet:{code:lv?"2013":"25CF",indent:18},indentLevel:lv+1},extra)});
     });
   });
   s.addText(runs,{x,y,w,h,fontFace:F,margin:0,valign:"top"});
@@ -73,18 +66,18 @@ s=p.addSlide();
 head(s,0,[{text:"정확도 경쟁이 아니라, ",options:{}},{text:"두 구조가 왜 다른지",options:{color:C.blue}},{text:"를 규명",options:{}}]);
 body(s,MX,1.55,W,5.2,[
   {h:"과제",items:[
-    [E("AG News 4-class 뉴스 주제 분류",{b:true,c:C.ink}),E(" (World·Sports·Business·Sci-Tech)")],
+    {t:"AG News 4-class 뉴스 주제 분류 (World·Sports·Business·Sci-Tech)",b:true,c:C.ink},
     "LSTM과 Transformer Encoder를 모두 from scratch로 학습",
   ]},
   {h:"방법",items:[
-    [E("데이터·전처리·어휘·시퀀스 길이·학습 예산",{b:true,c:C.ink}),E("을 동일하게 고정")],
+    {t:"데이터·전처리·어휘·시퀀스 길이·학습 예산을 동일하게 고정",b:true,c:C.ink},
     "encoder 구조만 유일한 변수로 둔다",
   ]},
   {h:"질문",items:[
     "성능·수렴·data efficiency·오분류 양상이 어떻게 다른가",
     "그리고 그 차이의 원인은 무엇인가",
   ]},
-],15,18);
+],15,15);
 pg(s,2);
 
 // ── 3 DATASET (배경)
@@ -92,10 +85,10 @@ s=p.addSlide();
 head(s,0,[{text:"balanced 4-class, 어휘는 ",options:{}},{text:"train에서만 구축",options:{color:C.blue}},{text:" (leakage 방지)",options:{}}]);
 body(s,MX,1.55,W,5.2,[
   {h:"분할 (seed 42)",items:[
-    [E("Train 108,000 / Validation 12,000 / Test 7,600",{b:true,c:C.ink})],
+    {t:"Train 108,000 / Validation 12,000 / Test 7,600",b:true,c:C.ink},
   ]},
   {h:"클래스",items:[
-    [E("World, Sports, Business, Sci-Tech",{b:true,c:C.ink}),E(" 4개, balanced")],
+    {t:"World, Sports, Business, Sci-Tech 4개, balanced",b:true,c:C.ink},
     "train 약 27,000 / test 1,900 each",
   ]},
   {h:"전처리 (두 모델 공통)",items:[
@@ -103,7 +96,7 @@ body(s,MX,1.55,W,5.2,[
     "vocabulary: train-only, 상한 20,000, min frequency 2",
     "max length 128, padding 위치는 masking으로 무시",
   ]},
-],15,16);
+],15,14);
 pg(s,3);
 
 // ── 4 MODELS (방법)
@@ -111,17 +104,17 @@ s=p.addSlide();
 head(s,1,[{text:"공유 골격, ",options:{}},{text:"encoder만 교체",options:{color:C.blue}}]);
 body(s,MX,1.55,W,5.2,[
   {h:"공유 골격",items:[
-    [E("Embedding(128) → Encoder → masked mean pooling → Linear(4)",{b:true,c:C.ink})],
+    {t:"Embedding(128) → Encoder → masked mean pooling → Linear(4)",b:true,c:C.ink},
     "encoder 한 조각만 교체, 나머지는 모두 동일",
   ]},
   {h:"encoder 비교",items:[
-    [E("LSTM   ",{b:true,c:C.ink}),E("bidirectional · 2 layers · hidden 128 / output 256 / params 3,220,484")],
-    [E("Transformer   ",{b:true,c:C.ink}),E("2 layers · 4 heads · FFN 256 · sinusoidal PE / dim 128 / params 2,825,476")],
+    {t:"LSTM : bidirectional · 2 layers · hidden 128 / output 256 / params 3,220,484",c:C.body},
+    {t:"Transformer : 2 layers · 4 heads · FFN 256 · sinusoidal PE / dim 128 / params 2,825,476",c:C.body},
   ]},
   {h:"파라미터 규모",items:[
     "임베딩이 지배적이라 두 모델 파라미터는 약 14% 차로 비슷",
   ]},
-],15,17);
+],15,15);
 pg(s,4);
 
 // ── 5 EXPERIMENTS (방법)
@@ -137,10 +130,10 @@ body(s,MX,1.55,W,5.2,[
     "model selection은 validation, test는 1회",
   ]},
   {h:"Ablation · 지표",items:[
-    [E("training set 5 / 25 / 50 / 100%",{b:true,c:C.ink}),E(" (vocabulary 고정, stratified, val·test 전체)")],
+    {t:"training set 5 / 25 / 50 / 100% (vocabulary 고정, stratified, val·test 전체)",b:true,c:C.ink},
     "accuracy · macro F1-score · loss curve · confusion matrix",
   ]},
-],15,16);
+],15,14);
 pg(s,5);
 
 // ── 6 RESULTS 메인 (결과) — fig_loss 전폭
@@ -149,8 +142,8 @@ head(s,2,[{text:"Transformer ",options:{}},{text:"0.910",options:{color:C.blue}}
 s.addImage({path:FIG+"/fig_loss.png",x:MX,y:1.5,w:W,h:4.25,sizing:{type:"contain",w:W,h:4.25}});
 body(s,MX,5.95,W,1.4,[
   {h:"",items:[
-    [E("Transformer   ",{b:true,c:C.blue}),E("test accuracy 0.910 · macro F1 0.909")],
-    [E("LSTM   ",{b:true,c:C.sub}),E("0.833 · macro F1 0.835, val loss 폭증으로 best epoch 2 저장")],
+    {t:"Transformer : test accuracy 0.910 · macro F1 0.909",b:true,c:C.blue},
+    {t:"LSTM : 0.833 · macro F1 0.835, val loss 폭증으로 best epoch 2 저장",c:C.body},
   ]},
 ],14,0);
 pg(s,6);
@@ -161,8 +154,8 @@ head(s,2,[{text:"두 모델 공통 ",options:{}},{text:"Business ↔ Sci/Tech �
 s.addImage({path:FIG+"/fig_confusion.png",x:MX,y:1.5,w:W,h:4.0,sizing:{type:"contain",w:W,h:4.0}});
 body(s,MX,5.75,W,1.5,[
   {h:"",items:[
-    [E("공통 오답 428건   ",{b:true,c:C.ink}),E("61%가 Business/Sci-Tech 경계 (의미 중첩에 따른 모호성)")],
-    [E("LSTM 단독 841건   ",{b:true,c:C.ink}),E("전 class에 분산, Transformer 단독(259건)의 3.2배")],
+    {t:"공통 오답 428건 : 61%가 Business/Sci-Tech 경계 (의미 중첩에 따른 모호성)",b:true,c:C.ink},
+    {t:"LSTM 단독 841건 : 전 class에 분산, Transformer 단독(259건)의 3.2배",c:C.body},
   ]},
 ],14,0);
 pg(s,7);
@@ -173,11 +166,11 @@ head(s,2,[{text:"LSTM은 ",options:{}},{text:"25%에서 포화",options:{color:C
 s.addImage({path:FIG+"/fig_ablation.png",x:MX,y:1.7,w:7.1,h:4.8,sizing:{type:"contain",w:7.1,h:4.8}});
 body(s,7.9,1.75,W-7.4,4.8,[
   {h:"Transformer",items:[
-    [E("데이터에 따라 단조 향상",{b:true,c:C.blue})],
+    {t:"데이터에 따라 단조 향상",b:true,c:C.blue},
     "scaling: 더 줄수록 더 좋아짐",
   ]},
   {h:"LSTM",items:[
-    [E("25%에서 정점 후 정체",{b:true,c:C.ink})],
+    {t:"25%에서 정점 후 정체",b:true,c:C.ink},
     "overfitting으로 추가 데이터를 못 씀",
   ]},
   {h:"가설 기각",items:[
@@ -193,8 +186,8 @@ head(s,2,[{text:"bag-of-words 과제, 격차는 ",options:{}},{text:"순서가 �
 s.addImage({path:FIG+"/fig_mechanism.png",x:MX,y:1.45,w:W,h:3.6,sizing:{type:"contain",w:W,h:3.6}});
 body(s,MX,5.25,W,1.6,[
   {h:"",items:[
-    [E("PE on/off   ",{b:true,c:C.ink}),E("with-PE 0.910 vs no-PE 0.911 (차이 -0.001) → 순서 정보가 거의 불필요")],
-    [E("robustness   ",{b:true,c:C.ink}),E("LSTM은 비주제어 'giddy'에 쏠려 오답, Transformer는 주제 토큰에 분산하여 정답")],
+    {t:"PE on/off : with-PE 0.910 vs no-PE 0.911 (차이 -0.001) → 순서 정보가 거의 불필요",c:C.body},
+    {t:"robustness : LSTM은 비주제어 'giddy'에 쏠려 오답, Transformer는 주제 토큰에 분산해 정답",c:C.body},
   ]},
 ],14,0);
 pg(s,9);
@@ -204,19 +197,19 @@ s=p.addSlide();
 head(s,3,[{text:"동일 조건에서 ",options:{}},{text:"Transformer 우수",options:{color:C.blue}},{text:", 원인은 generalization",options:{}}]);
 body(s,MX,1.55,W,5.2,[
   {h:"성능",items:[
-    [E("동일 조건에서 test accuracy 0.910 vs 0.833",{b:true,c:C.ink}),E(" (encoder 구조만 바꾼 통제된 비교)")],
+    {t:"동일 조건에서 test accuracy 0.910 vs 0.833 (encoder 구조만 바꾼 통제된 비교)",b:true,c:C.ink},
   ]},
   {h:"원인",items:[
-    [E("generalization 차이",{b:true,c:C.ink}),E(": LSTM은 overfitting하여 25%에서 포화, Transformer는 안정적으로 확장")],
+    {t:"generalization 차이 : LSTM은 overfitting하여 25%에서 포화, Transformer는 안정적으로 확장",b:true,c:C.ink},
   ]},
   {h:"과제 성격",items:[
-    [E("bag-of-words",{b:true,c:C.ink}),E(": positional encoding 제거해도 정확도 동일 → 격차는 순서가 아닌 robustness")],
+    {t:"bag-of-words : positional encoding 제거해도 정확도 동일 → 격차는 순서가 아닌 robustness",b:true,c:C.ink},
   ]},
   {h:"한계 · 향후",items:[
     "단일 seed → 다중 seed 재확인, LSTM regularization 강화",
     "순서가 중요한 과제에서 positional encoding 재검증",
   ]},
-],15,15);
+],15,14);
 pg(s,10);
 
 p.writeFile({fileName:OUT}).then(()=>console.log("saved "+OUT));
