@@ -1,6 +1,6 @@
 # AI Usage Appendix
 
-Team: 장지훈 (ETRI School, 02521122) · Deep Learning 2, 2026
+Team: 장지훈 (ETRI School, 02521122)
 
 ## 1. 사용한 AI 도구
 Claude (Anthropic, Claude Code 환경)를 coding 보조 겸 학습 tutor로 사용했다.
